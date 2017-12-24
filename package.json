@@ -1,7 +1,32 @@
 {
-  "name": "com.kit.cordova.amapnavigation",
-  "version": "1.0.0",
-  "description": "Cordova Navigation Plugin Powerd by KIT",
+  "_from": "gaodenav@^2.0.15",
+  "_id": "gaodenav@2.0.15",
+  "_inBundle": false,
+  "_integrity": "sha1-wkfLkhjQ9XfHKJH2t8RYxQOy4As=",
+  "_location": "/gaodenav",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "range",
+    "registry": true,
+    "raw": "gaodenav@^2.0.15",
+    "name": "gaodenav",
+    "escapedName": "gaodenav",
+    "rawSpec": "^2.0.15",
+    "saveSpec": null,
+    "fetchSpec": "^2.0.15"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "http://registry.npm.taobao.org/gaodenav/download/gaodenav-2.0.15.tgz",
+  "_shasum": "c247cb9218d0f577c72891f6b7c458c503b2e00b",
+  "_spec": "gaodenav@^2.0.15",
+  "_where": "D:\\test",
+  "author": {
+    "name": "zhiqiang"
+  },
+  "bundleDependencies": false,
   "cordova": {
     "id": "com.kit.cordova.amapnavigation",
     "platforms": [
@@ -9,10 +34,8 @@
       "android"
     ]
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/yanxiaojun617/com.kit.cordova.amapnavigation.git"
-  },
+  "deprecated": false,
+  "description": "Cordova Navigation Plugin Powerd by KIT",
   "keywords": [
     "cordova",
     "Navigation",
@@ -20,10 +43,7 @@
     "cordova-ios",
     "cordova-android"
   ],
-  "author": "yanxiaojun617@163.com",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/yanxiaojun617/com.kit.cordova.amapnavigation/issues"
-  },
-  "homepage": "https://github.com/yanxiaojun617/com.kit.cordova.amapnavigation#readme"
+  "license": "Apache 2.0",
+  "name": "gaodenav",
+  "version": "2.0.15"
 }

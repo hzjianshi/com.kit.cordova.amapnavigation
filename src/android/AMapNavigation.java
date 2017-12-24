@@ -43,6 +43,7 @@ public class AMapNavigation extends CordovaPlugin {
             intent.putExtra("NaviEndLng", args.getString(2));
             intent.putExtra("NaviEndLat", args.getString(3));
             intent.putExtra("NavType", args.getString(4));
+            intent.putExtra("NavWay", args.getString(5));
             Log.i("result","cordova");
             this.cordova.startActivityForResult((CordovaPlugin) this, intent, 100);
             return true;

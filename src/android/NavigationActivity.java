@@ -16,29 +16,32 @@ import com.amap.api.navi.AMapNaviListener;
 import com.amap.api.navi.AMapNaviView;
 import com.amap.api.navi.AMapNaviViewListener;
 import com.amap.api.navi.model.AMapLaneInfo;
+import com.amap.api.navi.enums.PathPlanningStrategy;
 import com.amap.api.navi.model.AMapNaviCross;
+import com.amap.api.navi.model.AMapNaviCameraInfo;
+import com.amap.api.navi.model.AMapNaviTrafficFacilityInfo;
 import com.amap.api.navi.model.AMapNaviInfo;
 import com.amap.api.navi.model.AMapNaviLocation;
+import com.amap.api.navi.model.AMapServiceAreaInfo;
+import com.amap.api.navi.model.AimLessModeStat;
+import com.amap.api.navi.model.AimLessModeCongestionInfo;
 import com.amap.api.navi.model.AMapNaviPath;
 import com.amap.api.navi.model.NaviInfo;
 import com.amap.api.navi.model.NaviLatLng;
 import com.autonavi.tbt.TrafficFacilityInfo;
 
-import com.iflytek.cloud.SpeechConstant;
-import com.iflytek.cloud.SpeechError;
-import com.iflytek.cloud.SpeechSynthesizer;
-import com.iflytek.cloud.SynthesizerListener;
-import com.iflytek.cloud.SpeechUtility;
 import com.kit.cordova.amapnavigation.AMapNavigation;
 
 public class NavigationActivity extends Activity implements
-        AMapNaviListener,AMapNaviViewListener{
+        AMapNaviListener, AMapNaviViewListener {
     //导航View
     private AMapNaviView mAmapAMapNaviView;
     //是否为模拟导航
     private boolean mIsEmulatorNavi = false;
+    // 导航类型 0 驾车导航，1 步行导航，2 骑行导航
+    private int mNavWay = 0;
     //记录由哪个页面跳转而来，处理返回键
-    private int mCode=-1;
+    private int mCode = -1;
 
     //起点终点
     private NaviLatLng mNaviStart;
@@ -46,29 +49,29 @@ public class NavigationActivity extends Activity implements
     //起点终点列表
     private ArrayList<NaviLatLng> mStartPoints = new ArrayList<NaviLatLng>();
     private ArrayList<NaviLatLng> mEndPoints = new ArrayList<NaviLatLng>();
-    // 合成对象.
-    private SpeechSynthesizer mSpeechSynthesizer = null;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.i("result","onCreate");
+        Log.i("result", "onCreate");
         AMapNavi.getInstance(this).setAMapNaviListener(this);
         Intent intent = getIntent();
-        mNaviStart = new NaviLatLng(Float.parseFloat(intent.getStringExtra("NaviStartLat")),Float.parseFloat(intent.getStringExtra("NaviStartLng")));
-        mNaviEnd = new NaviLatLng(Float.parseFloat(intent.getStringExtra("NaviEndLat")),Float.parseFloat(intent.getStringExtra("NaviEndLng")));
+        mNaviStart = new NaviLatLng(Float.parseFloat(intent.getStringExtra("NaviStartLat")), Float.parseFloat(intent.getStringExtra("NaviStartLng")));
+        mNaviEnd = new NaviLatLng(Float.parseFloat(intent.getStringExtra("NaviEndLat")), Float.parseFloat(intent.getStringExtra("NaviEndLng")));
         LinearLayout l = new LinearLayout(this);
         ViewGroup.LayoutParams layoutParams = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
         l.setLayoutParams(layoutParams);
 
         //判断实时还是模拟
-         if(intent.getStringExtra("NavType").equals("0") ){
-           mIsEmulatorNavi=false;
+        if (intent.getStringExtra("NavType").equals("0")) {
+            mIsEmulatorNavi = true;
+        } else {
+            mIsEmulatorNavi = false;
         }
-        else
-        {
-           mIsEmulatorNavi=true;
-        }
+
+        // 导航类型
+        mNavWay = Integer.parseInt(intent.getStringExtra("NavWay"));
+
         mAmapAMapNaviView = new AMapNaviView(this);
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams
@@ -76,7 +79,7 @@ public class NavigationActivity extends Activity implements
         l.addView(mAmapAMapNaviView, lp);
 
         setContentView(l);
-        init(savedInstanceState);
+        init(savedInstanceState, mNaviStart, mNaviEnd);
     }
 
     /**
@@ -84,84 +87,73 @@ public class NavigationActivity extends Activity implements
      *
      * @param savedInstanceState
      */
-    private void init(Bundle savedInstanceState) {
-        mStartPoints.add(mNaviStart);
-        mEndPoints.add(mNaviEnd);
+    private void init(Bundle savedInstanceState, NaviLatLng mNaviStart, NaviLatLng mNaviEnd) {
         mAmapAMapNaviView.onCreate(savedInstanceState);
         mAmapAMapNaviView.setAMapNaviViewListener(this);
-        AMapNavi.getInstance(this).calculateDriveRoute(mStartPoints,
-                mEndPoints, null, AMapNavi.DrivingDefault);
-        Log.i("result","注册");
+        switch (mNavWay) {
+            case 0:
+                Log.i("result", "dirver");
 
-        SpeechUtility.createUtility(this,"appid=5804981b");
-        mSpeechSynthesizer = SpeechSynthesizer.createSynthesizer(this,null);
-        // 设置发音人`
-        mSpeechSynthesizer.setParameter(SpeechConstant.VOICE_NAME, "xiaoyan");
-        // 设置语速
-        mSpeechSynthesizer.setParameter(SpeechConstant.SPEED, "55");
-        // 设置音量
-        mSpeechSynthesizer.setParameter(SpeechConstant.VOLUME, "80");
+                mStartPoints.add(mNaviStart);
+                mEndPoints.add(mNaviEnd);
+                AMapNavi.getInstance(this).calculateDriveRoute(mStartPoints, mEndPoints, null, PathPlanningStrategy.DRIVING_AVOID_CONGESTION);
 
-        mSpeechSynthesizer.setParameter(SpeechConstant.ENGINE_TYPE, SpeechConstant.TYPE_CLOUD);
+                /**
+                 * 驾车路线规划策略
+                 * PathPlanningStrategy.DRIVING_AVOID_CONGESTION            单路径-时间优先 。规避拥堵的路线（考虑实时路况）
+                 * ~.DRIVING_SINGLE_ROUTE_AVOID_HIGHSPEED                   单路径,【不走高速】
+                 * ~.DRIVING_SINGLE_ROUTE_AVOID_HIGHSPEED_COST              单路径,【不走高速&躲避收费】
+                 * ~.DRIVING_SINGLE_ROUTE_AVOID_CONGESTION_COST             单路径,【躲避收费&躲避拥堵】
+                 * ~.DRIVING_SINGLE_ROUTE_AVOID_HIGHSPEED_COST_CONGESTION   单路径,【不走高速&躲避收费&躲避拥堵】
+                 */
+
+
+                return;
+            case 1:
+                Log.i("result", "walk");
+                AMapNavi.getInstance(this).calculateWalkRoute(mNaviStart, mNaviEnd);
+                return;
+            case 2:
+                Log.i("result", "ride");
+                AMapNavi.getInstance(this).calculateRideRoute(mNaviStart, mNaviEnd);
+                return;
+            default:
+                Log.i("result", "unknow Way");
+                return;
+        }
     }
 
-    /**
-     * 合成回调监听。
-     */
-    private SynthesizerListener mTtsListener = new SynthesizerListener() {
-        @Override
-        public void onSpeakBegin() {
-
-        }
-
-        @Override
-        public void onSpeakPaused() {
-
-        }
-
-        @Override
-        public void onSpeakResumed() {
-
-        }
-
-        @Override
-        public void onBufferProgress(int percent, int beginPos, int endPos,
-                                     String info) {
-
-        }
-
-        @Override
-        public void onSpeakProgress(int percent, int beginPos, int endPos) {
-
-        }
-
-        @Override
-        public void onCompleted(SpeechError error) {
-
-        }
-
-        @Override
-        public void onEvent(int eventType, int arg1, int arg2, Bundle obj) {
-
-        }
-    };
 
     @Override
     public void onCalculateRouteFailure(int arg0) {
-        mSpeechSynthesizer.startSpeaking("路径计算失败，请检查网络或输入参数", mTtsListener);
+
+    }
+
+    @Override
+    public void onReCalculateRouteForTrafficJam() {
+
+    }
+
+    @Override
+    public void onReCalculateRouteForYaw() {
+    }
+
+    @Override
+    public void onCalculateMultipleRoutesSuccess(int[] ints) {
+
     }
 
     @Override
     public void onCalculateRouteSuccess() {
         if (mIsEmulatorNavi) {
-            Log.i("result","模拟");
+            Log.i("result", "模拟");
             // 设置模拟速度
             AMapNavi.getInstance(this).setEmulatorNaviSpeed(60);
             // 开启模拟导航
             AMapNavi.getInstance(this).startNavi(AMapNavi.EmulatorNaviMode);
 
         } else {
-            Log.i("result","实时");
+            Log.i("result", "实时");
             // 开启实时导航
             AMapNavi.getInstance(this).startNavi(AMapNavi.GPSNaviMode);
         }
@@ -170,7 +162,6 @@ public class NavigationActivity extends Activity implements
     @Override
     public void onArriveDestination() {
         // TODO Auto-generated method stub
-        mSpeechSynthesizer.startSpeaking("到达目的地", mTtsListener);
     }
 
     @Override
@@ -182,13 +173,7 @@ public class NavigationActivity extends Activity implements
     @Override
     public void onEndEmulatorNavi() {
         // TODO Auto-generated method stub
-        mSpeechSynthesizer.startSpeaking("导航结束", mTtsListener);
-    }
 
-    @Override
-    public void onGetNavigationText(int arg0, String arg1) {
-        // TODO Auto-generated method stub
-        mSpeechSynthesizer.startSpeaking(arg1, mTtsListener);
     }
 
     @Override
@@ -200,13 +185,13 @@ public class NavigationActivity extends Activity implements
     @Override
     public void onInitNaviFailure() {
         // TODO Auto-generated method stub
-        Log.i("result","导航失败");
+        Log.i("result", "导航失败");
     }
 
     @Override
     public void onInitNaviSuccess() {
         // TODO Auto-generated method stub
-        Log.i("result","导航注册成功");
+        Log.i("result", "导航注册成功");
     }
 
     @Override
@@ -221,23 +206,10 @@ public class NavigationActivity extends Activity implements
 
     }
 
-    @Override
-    public void onReCalculateRouteForTrafficJam() {
-        // TODO Auto-generated method stub
-        mSpeechSynthesizer.startSpeaking("前方路线拥堵，路线重新规划", mTtsListener);
-    }
-
-    @Override
-    public void onReCalculateRouteForYaw() {
-        // TODO Auto-generated method stub
-        mSpeechSynthesizer.startSpeaking("您已偏航", mTtsListener);
-    }
-
-    @Override
     public void onStartNavi(int arg0) {
         // TODO Auto-generated method stub
         //mSpeechSynthesizer.startSpeaking("运维托管导航启动", mTtsListener);
-        Log.i("result","启动导航");
+        Log.i("result", "启动导航");
     }
 
     @Override
@@ -245,18 +217,67 @@ public class NavigationActivity extends Activity implements
         // TODO Auto-generated method stub
 
     }
+
+    @Override
+    public void onGetNavigationText(int arg0, String arg1) {
+
+    }
+
+    @Override
+    public void OnUpdateTrafficFacility(AMapNaviTrafficFacilityInfo aMapNaviTrafficFacilityInfo) {
+
+    }
+
+    @Override
+    public void notifyParallelRoad(int i) {
+
+    }
+
     @Override
     public void OnUpdateTrafficFacility(TrafficFacilityInfo trafficFacilityInfo) {
 
     }
+
+    @Override
+    public void OnUpdateTrafficFacility(AMapNaviTrafficFacilityInfo[] aMapNaviTrafficFacilityInfos) {
+
+    }
+
+    @Override
+    public void updateCameraInfo(AMapNaviCameraInfo[] infoArray) {
+
+    }
+
+    @Override
+    public void onPlayRing(int type) {
+
+    }
+
+    @Override
+    public void onServiceAreaUpdate(AMapServiceAreaInfo[] infoArray) {
+
+    }
+
+    @Override
+    public void updateAimlessModeStatistics(AimLessModeStat aimLessModeStat) {
+
+    }
+
+    @Override
+    public void updateAimlessModeCongestionInfo(AimLessModeCongestionInfo aimLessModeCongestionInfo) {
+
+    }
+
     @Override
     public boolean onNaviBackClick() {
         return false;
     }
+
     @Override
     public void hideLaneInfo() {
 
     }
+
     @Override
     public void showCross(AMapNaviCross aMapNaviCross) {
     }
@@ -264,21 +285,19 @@ public class NavigationActivity extends Activity implements
     @Override
     public void hideCross() {
     }
+
     @Override
     public void showLaneInfo(AMapLaneInfo[] laneInfos, byte[] laneBackgroundInfo, byte[] laneRecommendedInfo) {
 
     }
 
     //-----------------------------导航界面回调事件------------------------
+
     /**
      * 导航界面返回按钮监听
-     * */
+     */
     @Override
     public void onNaviCancel() {
-//        Intent intent = new Intent(SimpleNaviActivity.this,
-//                MainStartActivity.class);
-//        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-//        startActivity(intent);
         this.setResult(RESULT_CANCELED);
         finish();
     }
@@ -332,12 +351,16 @@ public class NavigationActivity extends Activity implements
     public void onDestroy() {
         super.onDestroy();
         mAmapAMapNaviView.onDestroy();
-        mSpeechSynthesizer.stopSpeaking();
     }
 
     @Override
     public void onLockMap(boolean arg0) {
         // TODO Auto-generated method stub
+    }
+
+    @Override
+    public void onNaviViewLoaded() {
+
     }
 
     @Override

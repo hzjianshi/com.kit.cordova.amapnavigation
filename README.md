@@ -1,35 +1,32 @@
-# com.kit.cordova.amapnavigation
+# cordova_plugin_amap_navigation
 
-使用高德地图sdk进行导航
+使用高德地图sdk进行导航的cordova plugin
 
-## 安装
-`cordova plugin add https://github.com/yanxiaojun617/com.kit.cordova.amapnavigation --save `
+## 开始
 
-## 配置
-更多详情请看http://www.jianshu.com/p/85aceaee3b35
 ### Android
 
-*  修改 plugin.xml(:23) 文件中的高德地图android key
-
-`<preference name="amapapikey" value="这里填您申请的高德地图ios key"/>`
-
-ps:_如果也使用了[定位插件](https://github.com/yanxiaojun617/com.kit.cordova.amaplocation),则不需要配置android key,因为在定位插件中已经配置了android key_
+将plugin.xml中的YOU_API_KEY修改为你申请的高德地图Android Sdk Api key
 
 ### IOS
 
-*  修改 plugin.xml(:65) 文件中的高德地图ios key
+在项目的config.xml中加入：
 
-`<meta-data android:name="com.amap.api.v2.apikey" android:value="这里填您申请的高德地图android key"/>`
+```xml
+<preference name="amapapikey" value="你的高德地图IOS api key" />
+```
 
-### ionic1调用方法
+## 使用
+
+调用：
 
 ```js
 var successCallback = function(message){
-  //do something
+  //do something  
 };
 
 var errorCallback = function(message){
-    console.log(message);
+    console.log(message);  
 };
 
 cordova.plugins.AMapNavigation.navigation({
@@ -40,40 +37,5 @@ cordova.plugins.AMapNavigation.navigation({
     lat: 终点的纬度
 }, NavType //导航类型，0为实时，1为模拟
 ,successCallback, errorCallback);
-
-```
-
-### ionic2调用方法
-
-```
-import {Injectable} from '@angular/core';
-declare var AMapNavigation;
-
-@Injectable()
-export class NativeService {
-  constructor() { }
-  /**
-   * 地图导航
-   * @param startPoint 开始坐标
-   * @param endPoint 结束坐标
-   * @param type 0实时导航,1模拟导航,默认为模拟导航
-   * @return {Promise<string>}
-   */
-  navigation(startPoint, endPoint, type = 1): Promise<string> {
-    return new Promise((resolve) => {
-      AMapNavigation.navigation({
-        lng: startPoint.lng,
-        lat: startPoint.lat
-      }, {
-        lng: endPoint.lng,
-        lat: endPoint.lat
-      }, type, function (message) {
-        resolve(message);
-      }, function (err) {
-        alert('导航失败:' + err);
-      });
-    });
-  }
-}
 
 ```
